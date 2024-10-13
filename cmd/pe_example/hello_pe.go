@@ -3,7 +3,7 @@ package main
 import (
 	_ "embed"
 	"fmt"
-	"github.com/praetorian-inc/goffloader/src/pe"
+	"github.com/chvancooten/goffloader/src/pe"
 )
 
 // code for this is in hello.c

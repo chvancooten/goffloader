@@ -6,8 +6,8 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"fmt"
-	"github.com/praetorian-inc/goffloader/src/coff"
-	"github.com/praetorian-inc/goffloader/src/lighthouse"
+	"github.com/chvancooten/goffloader/src/coff"
+	"github.com/chvancooten/goffloader/src/lighthouse"
 	"io"
 	"strings"
 )
