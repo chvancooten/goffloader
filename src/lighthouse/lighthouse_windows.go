@@ -10,7 +10,6 @@
 package lighthouse
 
 import (
-	"sync"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
