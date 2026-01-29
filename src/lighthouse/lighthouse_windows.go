@@ -10,6 +10,7 @@
 package lighthouse
 
 import (
+	"sync"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -243,6 +244,12 @@ func GetCoffPrintfForChannel(channel chan<- interface{}) func(int, uintptr, uint
 	}
 }
 
+// extractedBuffers keeps DataExtract allocations alive to prevent GC during BOF execution
+var (
+	extractedBuffers   = make(map[uintptr][]byte)
+	extractedBuffersMu sync.Mutex
+)
+
 type DataParser struct {
 	original uintptr
 	buffer   uintptr
@@ -270,7 +277,12 @@ func DataExtract(datap *DataParser, size *uint32) uintptr {
 
 	datap.buffer += uintptr(binaryLength)
 	datap.length -= binaryLength
-	return uintptr(unsafe.Pointer(&out[0]))
+	// Keep the buffer alive by storing it in a global map to prevent GC
+	ptr := uintptr(unsafe.Pointer(&out[0]))
+	extractedBuffersMu.Lock()
+	extractedBuffers[ptr] = out
+	extractedBuffersMu.Unlock()
+	return ptr
 }
 
 func DataInt(datap *DataParser) uintptr {
