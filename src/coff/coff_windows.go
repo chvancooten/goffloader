@@ -309,9 +309,9 @@ func LoadWithMethod(coffBytes []byte, argBytes []byte, method string) (string, e
 
 		if section.Characteristics&IMAGE_SCN_MEM_EXECUTE != 0 {
 			oldProtect := PAGE_READWRITE
-			_, _, errVirtualProtect := procVirtualProtect.Call(sectionVirtualAddr, uintptr(section.SizeOfRawData), PAGE_EXECUTE_READ, uintptr(unsafe.Pointer(&oldProtect)))
-			if errVirtualProtect != nil && errVirtualProtect.Error() != "The operation completed successfully." {
-				return "", fmt.Errorf("Error calling VirtualProtect:\r\n%s", errVirtualProtect.Error())
+			retVirtualProtect, _, errVirtualProtect := procVirtualProtect.Call(sectionVirtualAddr, uintptr(section.SizeOfRawData), PAGE_EXECUTE_READ, uintptr(unsafe.Pointer(&oldProtect)))
+			if err := virtualProtectError(retVirtualProtect, errVirtualProtect); err != nil {
+				return "", err
 			}
 		}
 	}
