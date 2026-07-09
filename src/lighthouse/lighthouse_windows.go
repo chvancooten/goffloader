@@ -20,7 +20,7 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
-	"github.com/praetorian-inc/goffloader/src/memory"
+	"github.com/chvancooten/goffloader/src/memory"
 	"golang.org/x/sys/windows"
 )
 

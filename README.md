@@ -7,7 +7,7 @@ Goffloader is a library that allows easy in-memory execution of [Cobalt Strike B
 Goffloader is designed to make loading of BOFs or PE files as straightforward as possible by using the `go:embed` tag. For example, to run an embedded executable and display its console output the code is:
 
 ```go
-import "github.com/praetorian-inc/goffloader/src/pe"
+import "github.com/chvancooten/goffloader/src/pe"
 
 //go:embed hello.exe
 var helloBytes []byte
@@ -18,7 +18,7 @@ func main() {
 }
 ```
 
-Full examples for running [BOFs](https://github.com/praetorian-inc/goffloader/blob/main/cmd/bof_example/whois_bof.go) or [PE files](https://github.com/praetorian-inc/goffloader/blob/main/cmd/pe_example/hello_pe.go) can be found in the `cmd` folder. The ability to run PE files is enabled via the [No-Consolation BOF](https://github.com/fortra/No-Consolation), and an example of executing that can be seen [here](https://github.com/praetorian-inc/goffloader/blob/main/src/pe/pe_windows.go)
+Full examples for running [BOFs](https://github.com/chvancooten/goffloader/blob/main/cmd/bof_example/whois_bof.go) or [PE files](https://github.com/chvancooten/goffloader/blob/main/cmd/pe_example/hello_pe.go) can be found in the `cmd` folder. The ability to run PE files is enabled via the [No-Consolation BOF](https://github.com/fortra/No-Consolation), and an example of executing that can be seen [here](https://github.com/chvancooten/goffloader/blob/main/src/pe/pe_windows.go)
 
 # Why?
 
