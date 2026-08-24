@@ -11,7 +11,6 @@ import (
 	"github.com/chvancooten/goffloader/src/lighthouse"
 
 	"github.com/RIscRIpt/pecoff"
-	"github.com/RIscRIpt/pecoff/binutil"
 	"github.com/RIscRIpt/pecoff/windef"
 
 	"golang.org/x/sys/windows"
@@ -201,11 +200,15 @@ func Load(coffBytes []byte, argBytes []byte) (string, error) {
 }
 
 func LoadWithMethod(coffBytes []byte, argBytes []byte, method string) (string, error) {
-	output := make(chan interface{})
+	parsedCoff, err := parseCOFF(coffBytes)
+	if err != nil {
+		return "", err
+	}
+	if err := validateCOFF(parsedCoff, method); err != nil {
+		return "", fmt.Errorf("invalid COFF object: %w", err)
+	}
 
-	parsedCoff := pecoff.Explore(binutil.WrapByteSlice(coffBytes))
-	parsedCoff.ReadAll()
-	parsedCoff.Seal()
+	output := make(chan interface{})
 
 	sections := make(map[string]CoffSection, parsedCoff.Sections.Len())
 
@@ -257,7 +260,7 @@ func LoadWithMethod(coffBytes []byte, argBytes []byte, method string) (string, e
 		sections[section.NameString()] = allocatedSection
 	}
 
-	gotBaseAddress, err := virtualAlloc(0, uintptr(gotSize), MEM_COMMIT|MEM_RESERVE|MEM_TOP_DOWN, PAGE_READWRITE)
+	gotBaseAddress, err = virtualAlloc(0, uintptr(gotSize), MEM_COMMIT|MEM_RESERVE|MEM_TOP_DOWN, PAGE_READWRITE)
 	if err != nil {
 		return "", fmt.Errorf("VirtualAlloc failed: %s", err.Error())
 	}
