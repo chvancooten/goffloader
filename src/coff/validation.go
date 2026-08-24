@@ -119,7 +119,15 @@ func validateCOFF(file *pecoff.File, entrypoint string) error {
 			}
 
 			width := relocationWidth(relocation.Type)
-			if width > 0 && uint64(relocation.VirtualAddress)+width > uint64(section.SizeOfRawData) {
+			if width == 0 {
+				return fmt.Errorf(
+					"COFF section %q relocation %d has unsupported type %d",
+					section.NameString(),
+					relocationIndex,
+					relocation.Type,
+				)
+			}
+			if uint64(relocation.VirtualAddress)+width > uint64(section.SizeOfRawData) {
 				return fmt.Errorf(
 					"COFF section %q relocation %d writes past raw data",
 					section.NameString(),
@@ -132,8 +140,7 @@ func validateCOFF(file *pecoff.File, entrypoint string) error {
 			if symbol.NameString() != entrypoint || int(symbol.SectionNumber) != sectionIndex+1 {
 				continue
 			}
-			if strings.HasPrefix(section.NameString(), ".bss") ||
-				uint64(symbol.Value) < uint64(section.SizeOfRawData) {
+			if uint64(symbol.Value) < uint64(section.SizeOfRawData) {
 				foundEntrypoint = true
 			}
 		}
@@ -159,8 +166,6 @@ func relocationWidth(relocationType uint16) uint64 {
 		windef.IMAGE_REL_AMD64_REL32_5:
 		return coffAddressSize
 	default:
-		// processRelocation reads a 32-bit addend before its type switch,
-		// including for relocation types it does not otherwise support.
-		return coffAddressSize
+		return 0
 	}
 }
