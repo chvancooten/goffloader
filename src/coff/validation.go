@@ -1,6 +1,7 @@
 package coff
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math"
 	"strings"
@@ -13,7 +14,52 @@ import (
 const (
 	coffPointerSize = 8
 	coffAddressSize = 4
+
+	coffFileHeaderSize                 = 20
+	coffFileNumberOfSectionsOffset     = 2
+	coffFileSizeOfOptionalHeaderOffset = 16
+
+	coffSectionHeaderSize             = 40
+	coffSectionSizeOfRawDataOffset    = 16
+	coffSectionPointerToRawDataOffset = 20
+	coffSectionCharacteristicsOffset  = 36
 )
+
+// stripUninitializedSectionData returns a copy of the COFF bytes with the
+// SizeOfRawData and PointerToRawData fields set to zero on each section that
+// has the IMAGE_SCN_CNT_UNINITIALIZED_DATA characteristic. Mingw-w64 emits
+// uninitialized sections (for example ".bss") with SizeOfRawData greater
+// than zero and PointerToRawData equal to zero. Without this preprocessing
+// step, the pecoff library tries to read that many bytes from file offset
+// zero. On a small object the read fails and parseCOFF returns an error.
+// On a larger object the read collects unrelated header bytes into the
+// section data, and the loader copies those bytes into uninitialized-data
+// memory. The loader zero-fills memory for uninitialized-data symbols at
+// load time, so a zero SizeOfRawData does not change execution semantics.
+func stripUninitializedSectionData(coffBytes []byte) []byte {
+	if len(coffBytes) < coffFileHeaderSize {
+		return coffBytes
+	}
+	numSections := int(binary.LittleEndian.Uint16(coffBytes[coffFileNumberOfSectionsOffset:]))
+	optionalHeader := int(binary.LittleEndian.Uint16(coffBytes[coffFileSizeOfOptionalHeaderOffset:]))
+	headersStart := coffFileHeaderSize + optionalHeader
+	end := headersStart + numSections*coffSectionHeaderSize
+	if end > len(coffBytes) {
+		return coffBytes
+	}
+
+	patched := append([]byte(nil), coffBytes...)
+	for i := 0; i < numSections; i++ {
+		headerStart := headersStart + i*coffSectionHeaderSize
+		characteristics := binary.LittleEndian.Uint32(patched[headerStart+coffSectionCharacteristicsOffset:])
+		if characteristics&windef.IMAGE_SCN_CNT_UNINITIALIZED_DATA == 0 {
+			continue
+		}
+		binary.LittleEndian.PutUint32(patched[headerStart+coffSectionSizeOfRawDataOffset:], 0)
+		binary.LittleEndian.PutUint32(patched[headerStart+coffSectionPointerToRawDataOffset:], 0)
+	}
+	return patched
+}
 
 // parseCOFF parses the complete object before any native memory is allocated.
 // pecoff returns errors for truncated tables and sections, but callers must
@@ -30,7 +76,8 @@ func parseCOFF(coffBytes []byte) (file *pecoff.File, err error) {
 		}
 	}()
 
-	file = pecoff.Explore(binutil.WrapByteSlice(coffBytes))
+	prepared := stripUninitializedSectionData(coffBytes)
+	file = pecoff.Explore(binutil.WrapByteSlice(prepared))
 	if err = file.ReadAll(); err != nil {
 		return nil, fmt.Errorf("failed to parse COFF: %w", pecoff.ErrorFlatten(err))
 	}
